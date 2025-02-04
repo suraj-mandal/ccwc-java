@@ -1,4 +1,4 @@
-package org.example;
+package org.example.invokers;
 
 import org.example.constants.ActionArgumentConstants;
 import org.example.processors.FileProcessor;
@@ -6,8 +6,9 @@ import org.example.processors.FileProcessor;
 
 public class CommandLineInvoker {
     private final String[] args;
+    private static CommandLineInvoker instance = null;
 
-    public CommandLineInvoker(String[] args) {
+    private CommandLineInvoker(String[] args) {
         this.args = args;
     }
 
@@ -26,39 +27,42 @@ public class CommandLineInvoker {
         System.out.println(wordCount + "\t" + fileProcessor.getFilePath());
     }
 
+    private void invokeCharacterCountForFile(FileProcessor fileProcessor) {
+        long charCount = fileProcessor.getChars();
+        System.out.println(charCount + "\t" + fileProcessor.getFilePath());
+    }
+
     private void invokeAllCountsForFile(FileProcessor fileProcessor) {
         long lineCount = fileProcessor.getLines();
         long byteCount = fileProcessor.getBytes();
         long wordCount = fileProcessor.getWords();
 
-        System.out.println(lineCount + "\t" + byteCount + "\t" + wordCount + "\t" + fileProcessor.getFilePath());
+        System.out.println(lineCount + "\t" + wordCount + "\t" + byteCount + "\t" + fileProcessor.getFilePath());
     }
 
     private void invokeForFile(String textFileName, String actionArgument) {
         // invoke a file processor
         FileProcessor fileProcessor = FileProcessor.generateFileProcessor(textFileName);
         if (fileProcessor.isReadSuccess()) {
-            if (actionArgument.startsWith("-")) {
-                String action = actionArgument.substring(1);
-                switch (action) {
-                    case ActionArgumentConstants.LINES:
-                        invokeLineCountForFile(fileProcessor);
-                        break;
-                    case ActionArgumentConstants.BYTES:
-                        invokeByteCountForFile(fileProcessor);
-                        break;
-                    case ActionArgumentConstants.WORDS:
-                        invokeWordCountForFile(fileProcessor);
-                        break;
-                    case ActionArgumentConstants.ALL:
-
-                    default:
-                        System.out.println("Unknown action type: " + actionArgument);
-                        System.exit(1);
-                }
-            } else {
-                System.out.println("Permissible Action types are [-w, -b, -l]");
-                System.exit(1);
+            switch (actionArgument) {
+                case ActionArgumentConstants.LINES:
+                    invokeLineCountForFile(fileProcessor);      // works correctly
+                    break;
+                case ActionArgumentConstants.BYTES:
+                    invokeByteCountForFile(fileProcessor);
+                    break;
+                case ActionArgumentConstants.WORDS:
+                    invokeWordCountForFile(fileProcessor);
+                    break;
+                case ActionArgumentConstants.CHARS:
+                    invokeCharacterCountForFile(fileProcessor);
+                    break;
+                case ActionArgumentConstants.ALL:
+                    invokeAllCountsForFile(fileProcessor);
+                    break;
+                default:
+                    System.out.println("Unknown action type: " + actionArgument);
+                    System.exit(1);
             }
         } else {
             System.out.println("Invalid file.");
@@ -68,7 +72,6 @@ public class CommandLineInvoker {
 
     public void invoke() {
         if (args.length == 2) {
-            // this means that there are two attributes
             String actionArgument = args[0];
             String textFileName = args[1];
             invokeForFile(textFileName, actionArgument);
@@ -78,5 +81,12 @@ public class CommandLineInvoker {
         } else {
             System.out.println("TO BE IMPLEMENTED...");
         }
+    }
+
+    public static CommandLineInvoker getInstance(String[] args) {
+        if (instance == null) {
+            instance = new CommandLineInvoker(args);
+        }
+        return instance;
     }
 }
