@@ -8,7 +8,7 @@ Visit the website to gather more insights on how does the tool work.
 
 Provided below is a concise architecture diagram of how the application behaves.
 
-![architecture diagram](./assets/application_design.png)
+![architecture diagram](assets/application_design.png)
 
 ## Requirements
 
