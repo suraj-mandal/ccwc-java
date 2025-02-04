@@ -1,52 +1,61 @@
 package org.example.processors;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import org.example.metadata.FileMetadata;
+
+import java.io.*;
+import java.nio.charset.Charset;
 import java.util.Optional;
 
 public class FileProcessor extends Processor {
     // let us process
-    private String fileContents;
+
+    private final FileMetadata fileMetadata;
     private final String filePath;
-    private boolean isReadSuccess;
+    private final boolean isReadSuccess;
 
     private static FileProcessor processor = null;
 
     private FileProcessor(String filePath) {
         this.filePath = filePath;
-        this.processFileContents();
+        isReadSuccess = checkIfFileExists(filePath);
+        fileMetadata = readFile(filePath).orElse(null);
     }
 
-    private static Optional<String> readFileUsingBufferedReader(String filePath) {
-        StringBuilder fileContentBuilder = new StringBuilder();
+    private static boolean checkIfFileExists(String filePath) {
+        File file = new File(filePath);
+        return file.exists() && !file.isDirectory();
+    }
 
-        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(filePath))) {
-            String line;
-
-            while ((line = bufferedReader.readLine()) != null) {
-                fileContentBuilder.append(line).append("\n");
+    private static long countCharactersWithDefaultEncoding(String filePath) {
+        try (InputStreamReader inputStreamReader = new InputStreamReader(new FileInputStream(filePath))) {
+            long count = 0;
+            while (inputStreamReader.read() != -1) {
+                count++;
             }
-
-            return Optional.of(fileContentBuilder.toString());
-
+            return count;
         } catch (IOException e) {
-            System.out.println("Error while reading the file: " + e.getMessage());
-            return Optional.empty();
+            System.out.println("Error while reading file " + filePath);
+            return 0L;
         }
     }
 
+    private static Optional<FileMetadata> readFile(String filePath) {
+        StringBuilder builder = new StringBuilder();
 
-    private void processFileContents() {
-        // processing the
-        Optional<String> fileContentOptional = readFileUsingBufferedReader(filePath);
-        if (fileContentOptional.isPresent()) {
-            // then the things can be updated
-            this.fileContents = fileContentOptional.get();
-            isReadSuccess = true;
-        } else {
-            isReadSuccess = false;
+        try (FileInputStream fileInputStream = new FileInputStream(filePath)) {
+            long byteCount = 0;
+            int currentByte;
+            while ((currentByte = fileInputStream.read()) != -1) {
+                byteCount++;
+                char currentChar = (char) currentByte;
+                builder.append(currentChar);
+            }
+            // updating the metadata
+            return Optional.of(new FileMetadata(builder.toString(), byteCount, Charset.defaultCharset()));
+        } catch (IOException e) {
+            System.out.println("Error while reading file " + filePath);
         }
+        return Optional.empty();
     }
 
     public static FileProcessor generateFileProcessor(String filePath) {
@@ -58,22 +67,35 @@ public class FileProcessor extends Processor {
 
     @Override
     public long getBytes() {
-        return fileContents != null ? fileContents.getBytes().length : 0;
+        if (fileMetadata == null) {
+            return 0;
+        }
+        return fileMetadata.totalBytes();
     }
 
     @Override
     public long getLines() {
-        return fileContents.split("\n").length;
+        if (fileMetadata == null) {
+            return 0;
+        }
+        return fileMetadata.fileContents().chars().filter(c -> c == '\n').count();
     }
 
     @Override
     public long getWords() {
-        String[] lines = fileContents.split("\n");
-        long totalWords = 0;
-        for (String line : lines) {
-            totalWords += line.split("\\s+").length;
+        return fileMetadata.fileContents().split("\\s+").length;
+    }
+
+    @Override
+    public long getChars() {
+        if (fileMetadata == null) {
+            return 0L;
         }
-        return totalWords;
+        if (fileMetadata.encoding().newEncoder().maxBytesPerChar() > 1) {
+            // the current encoding supports multi-byte encoding
+            return countCharactersWithDefaultEncoding(filePath);
+        }
+        return getBytes();
     }
 
     public String getFilePath() {

@@ -1,9 +1,10 @@
 package org.example;
 
+import org.example.invokers.CommandLineInvoker;
+
 public class Main {
     public static void main(String[] args) {
-        for (String arg : args) {
-            System.out.println(arg);
-        }
+        // invoking the command line
+        CommandLineInvoker.getInstance(args).invoke();
     }
 }

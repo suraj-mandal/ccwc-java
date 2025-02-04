@@ -6,4 +6,6 @@ public abstract class Processor {
     public abstract long getLines();
 
     public abstract long getWords();
+
+    public abstract long getChars();
 }
